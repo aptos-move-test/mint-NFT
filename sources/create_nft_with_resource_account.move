@@ -9,14 +9,24 @@ module mint_nft::create_nft_with_resource_account {
     use aptos_framework::account::SignerCapability;
     use aptos_framework::resource_account;
     use aptos_framework::account;
+    use aptos_framework::timestamp; 
 
     // This struct stores an NFT collection's relevant information
     struct ModuleData has key {
         // Storing the signer capability here, so the module can programmatically sign for transactions
         signer_cap: SignerCapability,
         token_data_id: TokenDataId,
+        expiration_timestamp: u64,
+        minting_enabled: bool,
     }
 
+    /// Action not authorized because the signer is not the admin of this module
+    const ENOT_AUTHORIZED: u64 = 1;
+    /// The collection minting is expired
+    const ECOLLECTION_EXPIRED: u64 = 2;
+    /// The collection minting is disabled
+    const EMINTING_DISABLED: u64 = 3;
+    
     /// `init_module` is automatically called when publishing the module.
     /// In this function, we create an example NFT collection and an example token.
     fun init_module(resource_signer: &signer) {
@@ -70,6 +80,8 @@ module mint_nft::create_nft_with_resource_account {
         move_to(resource_signer, ModuleData {
             signer_cap: resource_signer_cap,
             token_data_id,
+            minting_enabled: false,
+            expiration_timestamp: 10000000000,
         });
     }
 
@@ -79,6 +91,10 @@ module mint_nft::create_nft_with_resource_account {
     /// See https://aptos.dev/concepts/accounts/#resource-accounts for more information about resource account.
     public entry fun mint_event_ticket(receiver: &signer) acquires ModuleData {
         let module_data = borrow_global_mut<ModuleData>(@mint_nft);
+
+        // Check the config of this module to see if we enable minting tokens from this collection
+        assert!(timestamp::now_seconds() < module_data.expiration_timestamp, error::permission_denied(ECOLLECTION_EXPIRED));
+        assert!(module_data.minting_enabled, error::permission_denied(EMINTING_DISABLED));
 
         // Create a signer of the resource account from the signer capabiity stored in this module.
         // Using a resource account and storing its signer capability within the module allows the module to programmatically
@@ -104,5 +120,22 @@ module mint_nft::create_nft_with_resource_account {
             vector::empty<vector<u8>>(),
             vector::empty<String>(),
         );
+    }
+  
+    /// Set if minting is enabled for this minting contract.
+    public entry fun set_minting_enabled(caller: &signer, minting_enabled: bool) acquires ModuleData {
+        let caller_address = signer::address_of(caller);
+        // Abort if the caller is not the admin of this module.
+        assert!(caller_address == @admin_addr, error::permission_denied(ENOT_AUTHORIZED));
+        let module_data = borrow_global_mut<ModuleData>(@mint_nft);
+        module_data.minting_enabled = minting_enabled;
+    }
+
+    /// Set the expiration timestamp of this minting contract.
+    public entry fun set_timestamp(caller: &signer, expiration_timestamp: u64) acquires ModuleData {
+        let caller_address = signer::address_of(caller);
+        assert!(caller_address == @admin_addr, error::permission_denied(ENOT_AUTHORIZED));
+        let module_data = borrow_global_mut<ModuleData>(@mint_nft);
+        module_data.expiration_timestamp = expiration_timestamp;
     }
 }
