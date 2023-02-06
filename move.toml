@@ -6,6 +6,9 @@ version = '1.0.0'
 git = 'https://github.com/aptos-labs/aptos-core.git'
 rev = 'main'
 subdir = 'aptos-move/framework/aptos-framework'
+AptosFramework = { local = "../../../framework/aptos-framework" }
+AptosToken = { local = "../../../framework/aptos-token" }
+
 
 [addreses]
 sender = "0xbc465eb8cd06ec98e88b502558298168408705da84f73a2d4032a49ee5baafdb"
