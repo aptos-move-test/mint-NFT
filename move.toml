@@ -1,0 +1,11 @@
+[package]
+name = 'aptos-nft'
+version = '1.0.0'
+
+[dependencies.AptosFramework]
+git = 'https://github.com/aptos-labs/aptos-core.git'
+rev = 'main'
+subdir = 'aptos-move/framework/aptos-framework'
+
+[addreses]
+sender = "0xbc465eb8cd06ec98e88b502558298168408705da84f73a2d4032a49ee5baafdb"
